@@ -10,6 +10,15 @@ public class BruteForce implements Runnable
     private final byte[] chars;
     private long startTime;
 
+    /**
+     * Constructor
+     *
+     * @param hash the hash to crack
+     * @param salt the salt that was used (empty string for no salt)
+     * @param min  the lowest ASCII character in the character set
+     * @param max  the highest ASCII character in the character set
+     * @param len  the password length
+     */
     public BruteForce(String hash, String salt, char min, char max, int len)
     {
         this.min = min;
@@ -22,6 +31,9 @@ public class BruteForce implements Runnable
         Arrays.fill(chars, 1, chars.length, (byte) min);
     }
 
+    /**
+     * Testing harness
+     */
     public static void main(String[] args)
     {
         long startTime = System.nanoTime();
@@ -35,6 +47,9 @@ public class BruteForce implements Runnable
         System.out.println(duration);
     }
 
+    /**
+     * Run the algorithm
+     */
     @Override
     public void run()
     {
@@ -42,32 +57,52 @@ public class BruteForce implements Runnable
 
         while (chars[0] == 0)
         {
-//            print();
             if (check()) return;
             increment();
         }
     }
 
+    /**
+     * Hash the current password and check if it matches the given hash
+     *
+     * @return true if the current password matches the given hash, false
+     * otherwise
+     */
     private boolean check()
     {
-        byte[] combined = new byte[salt.length + (chars.length - 1)];
+        byte[] combined;
+        int offset = 1;
 
-        System.arraycopy(salt, 0, combined, 0, salt.length);
-        System.arraycopy(chars, 1, combined, salt.length, chars.length - 1);
+        if (salt.length > 0)
+        {
+            combined = new byte[salt.length + (chars.length - 1)];
+            System.arraycopy(salt, 0, combined, 0, salt.length);
+            System.arraycopy(chars, 1, combined, salt.length, chars.length - 1);
+            offset = 0;
+        }
+        else
+        {
+            combined = chars;
+        }
 
-        if (SHA1.encode(combined, 0, combined.length).equals(this.hash))
+        if (SHA1.encode(combined, offset, combined.length - offset)
+                .equals(this.hash))
+//        if (SHA1.encode(chars, 1, chars.length - 1).equals(this.hash))
         {
             long endTime = System.nanoTime();
-            long duration = endTime - startTime;
 
             System.out.println("cracked: " + new String(chars)
-                    + " (" + this.hash + ") " + duration);
+                    + " (" + this.hash + ") in "
+                    + seconds(startTime, endTime));
             return true;
         }
 
         return false;
     }
 
+    /**
+     * Increment the current password (generate the next password in sequence)
+     */
     private void increment()
     {
         for (int i = chars.length - 1; i >= 0; i--)
@@ -84,6 +119,9 @@ public class BruteForce implements Runnable
         }
     }
 
+    /**
+     * Print the current password
+     */
     private void print()
     {
         for (int i = 1; i < chars.length; i++)
@@ -93,4 +131,16 @@ public class BruteForce implements Runnable
         System.out.println();
     }
 
+    /**
+     * Convert a nanosecond time duration to seconds
+     *
+     * @param startTime the start time in nanoseconds
+     * @param endTime   the end time in nanoseconds
+     *
+     * @return the duration in seconds
+     */
+    private String seconds(long startTime, long endTime)
+    {
+        return ((endTime - startTime) / 1000000000.0) + "s";
+    }
 }
