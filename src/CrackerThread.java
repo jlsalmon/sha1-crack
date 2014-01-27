@@ -25,7 +25,7 @@ public class CrackerThread implements Runnable
     private boolean crack()
     {
         ExecutorService executor = Executors.newCachedThreadPool();
-        for (int i = 0; i <= this.maxLength; i++)
+        for (int i = 1; i <= this.maxLength; i++)
         {
             executor.execute(new BruteForce(this.hash, this.salt, '0', 'z', i));
         }
