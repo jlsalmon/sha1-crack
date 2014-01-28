@@ -5,7 +5,8 @@ public class BruteForce implements Runnable
     private final int min;
     private final int max;
     private final int stringLength;
-    private final String hash;
+    private byte[] hash;
+//    private final String hash;
     private final byte[] salt;
     private final byte[] chars;
     private long startTime;
@@ -24,7 +25,8 @@ public class BruteForce implements Runnable
         this.min = min;
         this.max = max;
         this.stringLength = len;
-        this.hash = hash;
+        this.hash = SHA1.hexStringToByteArray(hash);
+//        this.hash = hash;
         this.salt = salt.getBytes();
 
         chars = new byte[stringLength + 1];
@@ -36,15 +38,24 @@ public class BruteForce implements Runnable
      */
     public static void main(String[] args)
     {
-        long startTime = System.nanoTime();
-        String hash = "e74295bfc2ed0b52d40073e8ebad555100df1380";
+        int numTestRuns = 5;
+        long startTime, endTime;
+        double total = 0;
+        String hash = "57864da96344366865dd7cade69467d811a7961b";
         String salt = "";
 
-        new BruteForce(hash, salt, '0', 'z', 4).run();
-        long endTime = System.nanoTime();
+        for (int i = 0; i < numTestRuns; i++)
+        {
+            startTime = System.nanoTime();
+            new BruteForce(hash, salt, '0', 'z', 5).run();
+            endTime = System.nanoTime();
+            total += (endTime - startTime);
+        }
 
-        long duration = endTime - startTime;
-        System.out.println(duration);
+        total = total / 1000000000.0;
+
+        System.out.println("total: " + total + "s");
+        System.out.println("avg: " + (total / numTestRuns) + "s");
     }
 
     /**
@@ -85,9 +96,10 @@ public class BruteForce implements Runnable
             combined = chars;
         }
 
-        if (SHA1.encode(combined, offset, combined.length - offset)
-                .equals(this.hash))
-//        if (SHA1.encode(chars, 1, chars.length - 1).equals(this.hash))
+//        if (SHA1.encode(combined, offset, combined.length - offset)
+//                .equals(this.hash))
+        byte[] sha1 = SHA1.encode(combined, offset, combined.length - offset);
+        if (Arrays.equals(sha1, this.hash))
         {
             long endTime = System.nanoTime();
 
