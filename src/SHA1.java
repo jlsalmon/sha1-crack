@@ -1,5 +1,6 @@
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class SHA1
 {
@@ -54,4 +55,5 @@ public class SHA1
         }
         return data;
     }
+
 }
