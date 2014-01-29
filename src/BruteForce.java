@@ -1,15 +1,17 @@
 import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
-public class BruteForce implements Runnable
+public class BruteForce implements Callable<Double>
 {
-    private final int min;
-    private final int max;
+    protected final int min;
+    protected final int max;
     private final int stringLength;
-    private byte[] hash;
-//    private final String hash;
     private final byte[] salt;
-    private final byte[] chars;
+    protected final byte[] chars;
+    private byte[] hash;
     private long startTime;
+    private long endTime;
 
     /**
      * Constructor
@@ -26,28 +28,25 @@ public class BruteForce implements Runnable
         this.max = max;
         this.stringLength = len;
         this.hash = SHA1.hexStringToByteArray(hash);
-//        this.hash = hash;
         this.salt = salt.getBytes();
-
-        chars = new byte[stringLength + 1];
-        Arrays.fill(chars, 1, chars.length, (byte) min);
+        this.chars = new byte[stringLength + 1];
     }
 
     /**
      * Testing harness
      */
-    public static void main(String[] args)
+    public static void main(String[] args) throws ExecutionException
     {
         int numTestRuns = 5;
         long startTime, endTime;
         double total = 0;
-        String hash = "57864da96344366865dd7cade69467d811a7961b";
+        String hash = "4bcc3a95bdd9a11b28883290b03086e82af90212";
         String salt = "";
 
         for (int i = 0; i < numTestRuns; i++)
         {
             startTime = System.nanoTime();
-            new BruteForce(hash, salt, '0', 'z', 5).run();
+            new BruteForce(hash, salt, '0', 'z', 6).call();
             endTime = System.nanoTime();
             total += (endTime - startTime);
         }
@@ -62,22 +61,32 @@ public class BruteForce implements Runnable
      * Run the algorithm
      */
     @Override
-    public void run()
+    public Double call() throws ExecutionException
     {
+        fill();
         startTime = System.nanoTime();
 
-        while (chars[0] == 0)
+        while (chars[0] == 0 && !Thread.currentThread().isInterrupted())
         {
-            if (check()) return;
+            if (check()) return seconds(startTime, endTime);
             increment();
         }
+
+        throw new ExecutionException(new Throwable());
+    }
+
+    /**
+     *
+     */
+    protected void fill()
+    {
+        Arrays.fill(chars, 1, chars.length, (byte) min);
     }
 
     /**
      * Hash the current password and check if it matches the given hash
      *
-     * @return true if the current password matches the given hash, false
-     * otherwise
+     * @return the password that matched the given hash if any, false otherwise
      */
     private boolean check()
     {
@@ -96,16 +105,16 @@ public class BruteForce implements Runnable
             combined = chars;
         }
 
-//        if (SHA1.encode(combined, offset, combined.length - offset)
-//                .equals(this.hash))
         byte[] sha1 = SHA1.encode(combined, offset, combined.length - offset);
+
         if (Arrays.equals(sha1, this.hash))
         {
-            long endTime = System.nanoTime();
+            endTime = System.nanoTime();
+            String time = String.valueOf(seconds(startTime, endTime));
+            String pass = new String(chars);
 
-            System.out.println("cracked: " + new String(chars)
-                    + " (" + this.hash + ") in "
-                    + seconds(startTime, endTime));
+            System.out.println("cracked: " + pass + " (" + this.hash + ") " +
+                    "in " + time + "s");
             return true;
         }
 
@@ -115,7 +124,7 @@ public class BruteForce implements Runnable
     /**
      * Increment the current password (generate the next password in sequence)
      */
-    private void increment()
+    protected void increment()
     {
         for (int i = chars.length - 1; i >= 0; i--)
         {
@@ -134,7 +143,7 @@ public class BruteForce implements Runnable
     /**
      * Print the current password
      */
-    private void print()
+    protected void print()
     {
         for (int i = 1; i < chars.length; i++)
         {
@@ -151,8 +160,8 @@ public class BruteForce implements Runnable
      *
      * @return the duration in seconds
      */
-    private String seconds(long startTime, long endTime)
+    private double seconds(long startTime, long endTime)
     {
-        return ((endTime - startTime) / 1000000000.0) + "s";
+        return ((endTime - startTime) / 1000000000.0);
     }
 }
