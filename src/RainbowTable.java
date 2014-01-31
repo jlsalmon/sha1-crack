@@ -14,6 +14,7 @@ public class RainbowTable
     private final int passwordLength;
     private final int chainLength;
     private final int numChains;
+    private final BigInteger modulo;
     private Map<String, String> table;
 
     /**
@@ -29,6 +30,7 @@ public class RainbowTable
         this.passwordLength = passwordLength;
         this.chainLength = chainLength;
         this.numChains = numChains;
+        this.modulo = getPrimeModulus();
     }
 
     /**
@@ -38,13 +40,13 @@ public class RainbowTable
     {
         String charset = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-        RainbowTable table = new RainbowTable(charset, 4, 1000, 350 * 5);
+        RainbowTable table = new RainbowTable(charset, 5, 5000, 125000);
 
         // Generate the table
         table.generate();
 
         // Perform a lookup
-        String pass = table.lookup("01464e1616e3fdd5c60c0cc5516c1d1454cc4185");
+        String pass = table.lookup("86f7e437faa5a7fce15d1ddcb9eaeaea377667b8");
         System.out.println("lookup: " + pass);
     }
 
@@ -124,7 +126,7 @@ public class RainbowTable
 
         for (int i = 0; i < chainLength; i++)
         {
-            hash = SHA1.encode(pass.getBytes(), 0, pass.length());
+            hash = SHA1.encode(pass.getBytes());
             pass = reduce(hash, i);
         }
 
@@ -141,14 +143,12 @@ public class RainbowTable
     {
         BigInteger index;
         StringBuilder builder = new StringBuilder();
-        BigInteger maxPass = BigInteger.valueOf(charset.length)
-                .pow(passwordLength);
 
         BigInteger temp = new BigInteger(hash, 16);
         // Reduction needs to produce a different output for a different chain
         // position
         temp = temp.add(BigInteger.valueOf(position));
-        temp = temp.mod(maxPass);
+        temp = temp.mod(this.modulo);
 
         while (temp.intValue() > 0)
         {
@@ -158,6 +158,24 @@ public class RainbowTable
         }
 
         return builder.toString();
+    }
+
+    /**
+     *
+     * @return
+     */
+    private BigInteger getPrimeModulus()
+    {
+        BigInteger max = BigInteger.ZERO;
+
+        for (int i = 1; i <= passwordLength; i++)
+        {
+            max = max.add(BigInteger.valueOf(charset.length).pow(i));
+        }
+
+        BigInteger prime = max.nextProbablePrime();
+        System.out.println("prime modulus: " + prime);
+        return prime;
     }
 
     /**
@@ -177,7 +195,7 @@ public class RainbowTable
             for (int j = i; j < chainLength; j++)
             {
                 pass = reduce(hash, j);
-                hash = SHA1.encode(pass.getBytes(), 0, pass.length());
+                hash = SHA1.encode(pass.getBytes());
             }
 
             if (table.containsKey(pass))
@@ -210,7 +228,7 @@ public class RainbowTable
 
         for (int j = 0; j < chainLength; j++)
         {
-            hash = SHA1.encode(pass.getBytes(), 0, pass.length());
+            hash = SHA1.encode(pass.getBytes());
 
             if (hash.equals(hashToFind))
             {
